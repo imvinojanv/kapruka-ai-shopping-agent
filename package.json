@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@ai-sdk/amazon-bedrock": "^4.0.113",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "ai": "^6.0.197",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -32,6 +33,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.7",
     "tailwindcss": "^4",
+    "tsx": "^4.22.4",
     "typescript": "^5"
   }
 }
