@@ -36,9 +36,9 @@ The system leverages **Anthropic Claude Sonnet 4** hosted on Amazon Bedrock. Thi
 import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
 
 export const bedrockClient \= createAmazonBedrock({  
-  region: process.env.AWS\_REGION || 'us-east-1',  
-  accessKeyId: process.env.AWS\_ACCESS\_KEY\_ID,  
-  secretAccessKey: process.env.AWS\_SECRET\_ACCESS\_KEY,  
+  region: process.env.AWS_REGION || 'us-east-1',  
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,  
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,  
 });
 
 export const shoppingAgentModel \= bedrockClient('us.anthropic.claude-sonnet-4-20250514-v1:0');
