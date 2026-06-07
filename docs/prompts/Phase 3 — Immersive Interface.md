@@ -12,6 +12,33 @@ Goal:
 
 Create an award-winning AI shopping interface.
 
+## Tool Result Rendering Rules
+
+The UI must never render raw MCP payloads.
+
+Create a mapping layer:
+
+search_products
+→ ProductCarousel
+
+get_product
+→ ProductDetailCard
+
+list_categories
+→ CategoryExplorer
+
+list_delivery_cities
+→ CitySelector
+
+check_delivery
+→ DeliveryCalculator
+
+create_order
+→ CheckoutCard
+
+track_order
+→ TrackingTimeline
+
 ## Design Requirements
 
 Stack:
@@ -23,7 +50,7 @@ Stack:
 
 ## Build
 
-src/components/
+components/
 
 ### Chat
 
@@ -92,9 +119,18 @@ Support:
 - Tablet
 - Desktop
 
-Minimum width:
+Minimum width: 375px
 
-375px
+## Checkout Expiry Experience
+
+Checkout URLs expire after 60 minutes.
+
+Requirements:
+
+- Countdown timer
+- Expiry warning banner
+- Refresh checkout CTA
+- Persistent order state
 
 ## AI UX Enhancements
 

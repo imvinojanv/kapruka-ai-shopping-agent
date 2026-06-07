@@ -14,6 +14,16 @@ Focus on:
 - Rate limiting
 - Error resilience
 
+## MCP Schema Compliance
+
+Before tool execution:
+
+- Remove unknown fields
+- Validate against strict Zod schemas
+- Enforce additionalProperties:false
+
+Never send malformed payloads to MCP.
+
 ## Localization
 
 Create advanced prompt instructions that support:
@@ -22,11 +32,15 @@ Sinhala Examples:
 
 "මට කේක් එකක් ඕන"
 
+Tamil Examples:
+
+"எனக்கு ஒரு கேக் வேண்டும்"
+
 Tanglish Examples:
 
 "mata hoda cake ekak one"
 
-"sirawatama hoda cake ekak deepan"
+"enakku oru cake vendum"
 
 Requirements:
 
@@ -39,7 +53,7 @@ Requirements:
 
 Create:
 
-src/ai/localization-prompt.ts
+lib/ai/localization-prompt.ts
 
 Add:
 
@@ -57,9 +71,11 @@ Challenge limit:
 Implement:
 
 - Server-side limiter
+- Client-side debouncing
 - User feedback
 - Retry strategy
 - Graceful degradation
+- Exponential backoff
 
 Never crash UI.
 
@@ -83,6 +99,21 @@ Validate:
 - Delivery date
 - Delivery availability
 
+### Order Tracking Validation
+
+Important:
+
+order_ref returned by create_order
+≠
+tracking identifier used by track_order
+
+The assistant must explain this distinction.
+
+If a user attempts tracking using order_ref:
+
+- Explain the difference
+- Request the correct order number
+
 ### Gift Validation
 
 Validate:
@@ -102,6 +133,18 @@ Prevent:
 
 - Past dates
 - Impossible delivery schedules
+
+## Pagination Guardrails
+
+The MCP service limits catalog exploration.
+
+Implement:
+
+- Search refinement prompts
+- Query optimization
+- Result narrowing
+
+Avoid excessive category traversal.
 
 ## Error Recovery
 

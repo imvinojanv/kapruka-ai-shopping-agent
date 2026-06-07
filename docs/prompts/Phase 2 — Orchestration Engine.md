@@ -23,16 +23,15 @@ Implement:
 Build the following architecture:
 
 /
- ├── ai/
- │    ├── bedrock.ts
- │    ├── system-prompt.ts
- │    ├── tool-registry.ts
- │    ├── tool-executor.ts
- │    ├── orchestrator.ts
- │
  ├── lib/
  │    ├── mcp-client.ts
  │    ├── mcp-tools.ts
+ │    ├── ai/
+ │      ├── bedrock.ts
+ │      ├── system-prompt.ts
+ │      ├── tool-registry.ts
+ │      ├── tool-executor.ts
+ │      ├── orchestrator.ts
  │
  ├── app/api/chat/route.ts
 

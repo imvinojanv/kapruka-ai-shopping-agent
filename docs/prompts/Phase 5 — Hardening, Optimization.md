@@ -112,6 +112,60 @@ Cover:
 6. Order creation
 7. Order tracking
 
+## Rate Limit Load Testing
+
+Create automated tests for:
+
+10 req/min
+30 req/min
+60 req/min
+
+Verify:
+
+- graceful degradation
+- retry behavior
+- user feedback
+
+## MCP Compliance Audit
+
+Validate:
+
+✓ Every tool uses params wrapper
+
+✓ Every response parses result.result
+
+✓ No extra fields sent
+
+✓ Server-side MCP execution only
+
+✓ Retry logic works
+
+✓ Pagination safeguards work
+
+✓ Checkout expiry handled
+
+✓ Order tracking flow validated
+
+## Multi-Step Shopping Tests
+
+Test:
+
+1. Search → Delivery → Checkout
+
+2. Multi-item cart creation
+
+3. Sinhala shopping journey
+
+4. Tanglish shopping journey
+
+5. Gift purchase flow
+
+6. Expired checkout link
+
+7. Invalid tracking number
+
+8. MCP outage recovery
+
 ## Final Audit
 
 Produce:
