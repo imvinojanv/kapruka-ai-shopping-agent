@@ -4,14 +4,14 @@ import { persist } from "zustand/middleware";
 // --- Order lifecycle states ---
 
 export type OrderPhase =
-  | "browsing"       // Searching/viewing products
-  | "cart"           // Items selected, building cart
-  | "delivery"       // Confirming delivery city/date
-  | "recipient"      // Collecting recipient details
-  | "review"         // Final review before order
-  | "creating"       // Order being placed (loading)
-  | "checkout"       // Checkout URL generated, awaiting payment
-  | "tracking";      // Post-payment, tracking order
+  | "browsing"
+  | "cart"
+  | "delivery"
+  | "recipient"
+  | "review"
+  | "creating"
+  | "checkout"
+  | "tracking";
 
 // --- Data types ---
 
@@ -53,45 +53,54 @@ export interface OrderResult {
   expiresAt: string;
 }
 
-// --- Store shape ---
+// --- Chat types ---
+
+export interface ChatThread {
+  id: string;
+  title: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+// --- Settings ---
+
+export interface AppSettings {
+  language: "en" | "si" | "ta";
+  currency: "LKR" | "USD";
+  theme: "light" | "dark";
+}
+
+// --- Shopping Store ---
 
 interface ShoppingState {
-  // Order lifecycle
   phase: OrderPhase;
   setPhase: (phase: OrderPhase) => void;
 
-  // Cart
   cart: CartItem[];
   addToCart: (item: CartItem) => void;
   removeFromCart: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
 
-  // Delivery
   delivery: DeliveryInfo | null;
   setDelivery: (info: DeliveryInfo) => void;
 
-  // Recipient
   recipient: RecipientInfo | null;
   setRecipient: (info: RecipientInfo) => void;
 
-  // Sender
   sender: SenderInfo | null;
   setSender: (info: SenderInfo) => void;
 
-  // Gift
   giftMessage: string;
   setGiftMessage: (msg: string) => void;
 
-  // Order result
   orderResult: OrderResult | null;
   setOrderResult: (result: OrderResult) => void;
 
-  // Reset
   resetOrder: () => void;
 }
 
-const initialState = {
+const initialShoppingState = {
   phase: "browsing" as OrderPhase,
   cart: [] as CartItem[],
   delivery: null as DeliveryInfo | null,
@@ -104,7 +113,7 @@ const initialState = {
 export const useShoppingStore = create<ShoppingState>()(
   persist(
     (set) => ({
-      ...initialState,
+      ...initialShoppingState,
 
       setPhase: (phase) => set({ phase }),
 
@@ -133,7 +142,9 @@ export const useShoppingStore = create<ShoppingState>()(
       updateQuantity: (productId, quantity) =>
         set((state) => ({
           cart: state.cart.map((c) =>
-            c.productId === productId ? { ...c, quantity: Math.min(99, Math.max(1, quantity)) } : c
+            c.productId === productId
+              ? { ...c, quantity: Math.min(99, Math.max(1, quantity)) }
+              : c
           ),
         })),
 
@@ -149,7 +160,7 @@ export const useShoppingStore = create<ShoppingState>()(
 
       setOrderResult: (orderResult) => set({ orderResult, phase: "checkout" }),
 
-      resetOrder: () => set(initialState),
+      resetOrder: () => set(initialShoppingState),
     }),
     {
       name: "kapruka-shopping-state",
@@ -161,6 +172,86 @@ export const useShoppingStore = create<ShoppingState>()(
         giftMessage: state.giftMessage,
         phase: state.phase,
       }),
+    }
+  )
+);
+
+// --- Chat History Store ---
+
+interface ChatHistoryState {
+  threads: ChatThread[];
+  activeThreadId: string | null;
+  setActiveThread: (id: string | null) => void;
+  createThread: (id: string) => void;
+  deleteThread: (id: string) => void;
+  updateThreadTitle: (id: string, title: string) => void;
+  touchThread: (id: string) => void;
+}
+
+export const useChatHistoryStore = create<ChatHistoryState>()(
+  persist(
+    (set) => ({
+      threads: [],
+      activeThreadId: null,
+
+      setActiveThread: (id) => set({ activeThreadId: id }),
+
+      createThread: (id) =>
+        set((state) => ({
+          threads: [
+            { id, title: "New conversation", createdAt: Date.now(), updatedAt: Date.now() },
+            ...state.threads,
+          ],
+          activeThreadId: id,
+        })),
+
+      deleteThread: (id) => {
+        if (typeof window !== "undefined") {
+          localStorage.removeItem(`chat-messages-${id}`);
+        }
+        set((state) => ({
+          threads: state.threads.filter((t) => t.id !== id),
+          activeThreadId: state.activeThreadId === id ? null : state.activeThreadId,
+        }));
+      },
+
+      updateThreadTitle: (id, title) =>
+        set((state) => ({
+          threads: state.threads.map((t) => (t.id === id ? { ...t, title } : t)),
+        })),
+
+      touchThread: (id) =>
+        set((state) => ({
+          threads: state.threads.map((t) =>
+            t.id === id ? { ...t, updatedAt: Date.now() } : t
+          ),
+        })),
+    }),
+    { name: "kapruka-chat-history" }
+  )
+);
+
+// --- Settings Store ---
+
+interface SettingsState {
+  settings: AppSettings;
+  updateSettings: (partial: Partial<AppSettings>) => void;
+  sidebarOpen: boolean;
+  setSidebarOpen: (open: boolean) => void;
+}
+
+export const useSettingsStore = create<SettingsState>()(
+  persist(
+    (set) => ({
+      settings: { language: "en", currency: "LKR", theme: "light" },
+      updateSettings: (partial) =>
+        set((state) => ({ settings: { ...state.settings, ...partial } })),
+      sidebarOpen: true,
+      setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
+    }),
+    {
+      name: "kapruka-settings",
+      partialize: (state) => ({ settings: state.settings, sidebarOpen: state.sidebarOpen }),
     }
   )
 );
