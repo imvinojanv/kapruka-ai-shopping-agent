@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CreditCard, Clock, ExternalLink, Package, Truck, Receipt } from "lucide-react";
+import { CreditCard, Clock, ExternalLink, Package, Truck, Download, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useShoppingStore } from "@/lib/store";
+import { generateOrderReceipt, type ReceiptData } from "@/lib/pdf/generate-receipt";
 
 interface OrderSummary {
   checkout_url?: string;
@@ -21,13 +23,70 @@ interface OrderSummary {
 export function CheckoutCard({ data }: { data: unknown }) {
   if (typeof data === "string" || !data) return null;
   const order = data as OrderSummary;
+  const clearCart = useShoppingStore((s) => s.clearCart);
+  const cart = useShoppingStore((s) => s.cart);
+  const delivery = useShoppingStore((s) => s.delivery);
+  const recipient = useShoppingStore((s) => s.recipient);
+  const sender = useShoppingStore((s) => s.sender);
+  const giftMessage = useShoppingStore((s) => s.giftMessage);
+  const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
+
+  const handlePaymentClick = () => {
+    // Generate receipt PDF
+    if (order.summary && order.order_ref && order.checkout_url && order.expires_at) {
+      try {
+        const receiptData: ReceiptData = {
+          orderRef: order.order_ref,
+          checkoutUrl: order.checkout_url,
+          expiresAt: order.expires_at,
+          items: cart.length > 0 ? cart : [],
+          summary: order.summary,
+          recipient: recipient ?? { name: "Customer", phone: "N/A" },
+          delivery: delivery
+            ? {
+              address: delivery.address,
+              city: delivery.city,
+              date: delivery.date,
+              locationType: delivery.locationType,
+              instructions: delivery.instructions,
+            }
+            : { address: "N/A", city: "N/A", date: "N/A", locationType: "house" },
+          sender: sender ?? { name: "N/A" },
+          giftMessage: giftMessage || undefined,
+        };
+        const dataUri = generateOrderReceipt(receiptData);
+        setReceiptUrl(dataUri);
+      } catch (e) {
+        console.error("Failed to generate receipt:", e);
+      }
+    }
+
+    clearCart();
+  };
+
+  const handleDownload = () => {
+    if (!receiptUrl || !order.order_ref) return;
+    const base64 = receiptUrl.split(",")[1];
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    const blob = new Blob([bytes], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Order-${order.order_ref}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
-    <div className="max-w-sm rounded-2xl overflow-hidden border border-border/60 bg-linear-to-br from-card via-card to-muted/30">
+    <div className="max-w-sm rounded-2xl overflow-hidden border border-border/80 bg-card/20">
       {/* Top accent bar */}
       <div className="h-1 w-full bg-linear-to-r from-primary via-purple-400 to-primary" />
 
-      <div className="p-4 space-y-4">
+      <div className="p-4 space-y-4 bg-linear-to-br from-card via-card to-muted/30 rounded-b-2xl border-b border-border/60">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -53,7 +112,6 @@ export function CheckoutCard({ data }: { data: unknown }) {
         {order.summary && (
           <div className="rounded-xl bg-muted/50 p-3.5 space-y-2.5">
             <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-3">
-              {/* <Receipt className="h-3.5 w-3.5" /> */}
               <span>Order Summary</span>
             </div>
 
@@ -95,17 +153,47 @@ export function CheckoutCard({ data }: { data: unknown }) {
         {order.expires_at && <ExpiryTimer expiresAt={order.expires_at} />}
 
         {/* Payment button */}
-        {order.checkout_url && (
+        <div>
+          <p className="mb-1 text-xs text-center font-light text-muted-foreground">
+            Make the payment to complete your order
+          </p>
+          {order.checkout_url && (
+            <Button
+              asChild
+              className="w-full h-10 gap-2 rounded-xl font-medium"
+              onClick={handlePaymentClick}
+            >
+              <a href={order.checkout_url} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="h-4 w-4" />
+                Complete Payment
+              </a>
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Download receipt button */}
+      <div className="px-4 py-3">
+        {receiptUrl ? (
           <Button
-            asChild
-            className="w-full h-10 gap-2 rounded-xl font-medium"
-            disabled={!!order.expires_at && new Date(order.expires_at).getTime() < Date.now()}
+            variant="outline"
+            className="w-full h-9 gap-2 rounded-xl text-sm"
+            onClick={handleDownload}
           >
-            <a href={order.checkout_url} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="h-4 w-4" />
-              Complete Payment
-            </a>
+            <Download className="h-4 w-4" />
+            Download Order Receipt
           </Button>
+        ) : (
+          order.order_ref && (
+            <Button
+              variant="ghost"
+              className="w-full h-9 gap-2 rounded-xl text-sm text-muted-foreground"
+              onClick={handlePaymentClick}
+            >
+              <FileText className="h-4 w-4" />
+              Generate Receipt PDF
+            </Button>
+          )
         )}
       </div>
     </div>
