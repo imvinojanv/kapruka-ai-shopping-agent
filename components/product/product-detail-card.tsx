@@ -1,11 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { ShoppingCart, ExternalLink, Package, ChevronLeft, ChevronRight } from "lucide-react";
+import Image from "next/image";
+import { ShoppingCart, ExternalLink, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselPrevious,
+  CarouselNext,
+} from "@/components/ui/carousel";
 import { useShoppingStore } from "@/lib/store";
 
 interface ProductDetail {
@@ -40,14 +47,14 @@ export function ProductDetailCard({ data }: { data: unknown }) {
   };
 
   return (
-    <Card className="overflow-hidden max-w-md">
+    <Card className="overflow-hidden max-w-md p-0 gap-0">
       {product.images && product.images.length > 0 && (
-        <DetailImageSlider images={product.images} alt={product.name} />
+        <DetailImageCarousel images={product.images} alt={product.name} />
       )}
-      <CardContent className="p-4 space-y-3">
+      <CardContent className="px-4 pt-3 pb-2 space-y-3">
         <div>
           {product.category?.name && (
-            <Badge variant="secondary" className="text-[10px] mb-1">
+            <Badge variant="secondary" className="text-[10px] mb-2 -ml-1">
               {product.category.name}
             </Badge>
           )}
@@ -105,49 +112,40 @@ export function ProductDetailCard({ data }: { data: unknown }) {
   );
 }
 
-function DetailImageSlider({ images, alt }: { images: string[]; alt: string }) {
-  const [current, setCurrent] = useState(0);
-
+function DetailImageCarousel({ images, alt }: { images: string[]; alt: string }) {
   if (images.length === 1) {
     return (
-      <div className="aspect-4/3 overflow-hidden bg-muted">
-        <img src={images[0]} alt={alt} className="h-full w-full object-cover" />
+      <div className="relative w-full aspect-4/3 overflow-hidden bg-muted">
+        <Image
+          src={images[0]}
+          alt={alt}
+          fill
+          className="object-cover"
+          sizes="(max-width: 448px) 100vw, 448px"
+        />
       </div>
     );
   }
 
   return (
-    <div className="relative aspect-4/3 overflow-hidden bg-muted group">
-      <img
-        src={images[current]}
-        alt={`${alt} ${current + 1}`}
-        className="h-full w-full object-cover transition-opacity duration-300"
-      />
-
-      <button
-        onClick={() => setCurrent((c) => (c === 0 ? images.length - 1 : c - 1))}
-        className="absolute left-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-background/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-      >
-        <ChevronLeft className="h-4 w-4" />
-      </button>
-      <button
-        onClick={() => setCurrent((c) => (c === images.length - 1 ? 0 : c + 1))}
-        className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-background/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-      >
-        <ChevronRight className="h-4 w-4" />
-      </button>
-
-      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-        {images.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => setCurrent(i)}
-            className={`h-2 w-2 rounded-full transition-colors ${
-              i === current ? "bg-primary" : "bg-background/60"
-            }`}
-          />
+    <Carousel opts={{ align: "start", loop: true }} className="w-full">
+      <CarouselContent className="ml-0">
+        {images.map((src, i) => (
+          <CarouselItem key={i} className="pl-0 basis-full">
+            <div className="relative w-full aspect-4/3 overflow-hidden bg-muted">
+              <Image
+                src={src}
+                alt={`${alt} ${i + 1}`}
+                fill
+                className="object-cover"
+                sizes="(max-width: 448px) 100vw, 448px"
+              />
+            </div>
+          </CarouselItem>
         ))}
-      </div>
-    </div>
+      </CarouselContent>
+      <CarouselPrevious className="left-2 h-8 w-8 bg-background/80 backdrop-blur-sm border shadow-sm" />
+      <CarouselNext className="right-2 h-8 w-8 bg-background/80 backdrop-blur-sm border shadow-sm" />
+    </Carousel>
   );
 }

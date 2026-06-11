@@ -1,12 +1,13 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import { useChat } from "@ai-sdk/react";
 import type { UIMessage } from "ai";
 import { ChatMessage } from "./chat-message";
 import { MessageComposer } from "./message-composer";
 import { TypingIndicator } from "./typing-indicator";
-import { useChatHistoryStore } from "@/lib/store";
+import { ChatProvider } from "./chat-context";
+import { useChatHistoryStore, useShoppingStore } from "@/lib/store";
 
 interface ChatContainerProps {
   chatId: string;
@@ -30,6 +31,7 @@ function saveMessages(chatId: string, messages: UIMessage[]) {
 
 export function ChatContainer({ chatId }: ChatContainerProps) {
   const { updateThreadTitle, touchThread, threads } = useChatHistoryStore();
+  const cart = useShoppingStore((s) => s.cart);
   const [input, setInput] = useState("");
   const titleUpdated = useRef(false);
 
@@ -74,7 +76,7 @@ export function ChatContainer({ chatId }: ChatContainerProps) {
     if (initialText) {
       sessionStorage.removeItem(key);
       hasSentInitial.current = true;
-      sendMessage({ text: initialText });
+      sendMessage({ text: initialText }, { body: { cart } });
     }
   }, [chatId, sendMessage]);
 
@@ -88,19 +90,24 @@ export function ChatContainer({ chatId }: ChatContainerProps) {
     const text = input.trim();
     if (!text || isLoading) return;
     setInput("");
-    sendMessage({ text });
+    sendMessage({ text }, { body: { cart } });
   };
 
+  const handleFormSubmit = useCallback((text: string) => {
+    sendMessage({ text }, { body: { cart } });
+  }, [sendMessage, cart]);
+
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
-      <div ref={scrollRef} className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-4xl pt-4 pb-24">
-          {messages.map((message) => (
-            <ChatMessage key={message.id} message={message} />
-          ))}
-          {isLoading && <TypingIndicator />}
+    <ChatProvider sendMessage={handleFormSubmit} isLoading={isLoading}>
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto">
+          <div className="mx-auto max-w-4xl pt-4 pb-4">
+            {messages.map((message) => (
+              <ChatMessage key={message.id} message={message} />
+            ))}
+            {isLoading && <TypingIndicator />}
+          </div>
         </div>
-      </div>
 
       <MessageComposer
         value={input}
@@ -108,6 +115,7 @@ export function ChatContainer({ chatId }: ChatContainerProps) {
         onSubmit={handleSend}
         isLoading={isLoading}
       />
-    </div>
+      </div>
+    </ChatProvider>
   );
 }

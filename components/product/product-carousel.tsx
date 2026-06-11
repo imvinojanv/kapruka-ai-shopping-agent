@@ -108,7 +108,10 @@ function ProductMiniCard({ product }: { product: ProductResult }) {
             </span>
           )}
           {product.in_stock !== undefined && (
-            <Badge variant={product.in_stock ? "secondary" : "destructive"} className="text-[10px]">
+            <Badge
+              variant={product.in_stock ? "secondary" : "destructive"}
+              className={`text-[11px] ${product.in_stock ? "bg-green-600/20 text-green-600" : ""}`}
+            >
               {product.in_stock ? "In Stock" : "Out"}
             </Badge>
           )}
@@ -174,9 +177,8 @@ function ImageSlider({ images, alt }: { images: string[]; alt: string }) {
         {images.map((_, i) => (
           <span
             key={i}
-            className={`h-1.5 w-1.5 rounded-full transition-colors ${
-              i === current ? "bg-primary" : "bg-background/60"
-            }`}
+            className={`h-1.5 w-1.5 rounded-full transition-colors ${i === current ? "bg-primary" : "bg-background/60"
+              }`}
           />
         ))}
       </div>

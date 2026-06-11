@@ -5,7 +5,8 @@ import { Bot, User } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import type { UIMessage } from "ai";
 import { ToolResultRenderer } from "./tool-result-renderer";
-import Image from "next/image";
+import { DynamicForm, type DynamicFormSchema } from "./dynamic-form";
+import { useChatContext } from "./chat-context";
 
 interface ChatMessageProps {
   message: UIMessage;
@@ -39,19 +40,15 @@ export function ChatMessage({ message }: ChatMessageProps) {
       <div className={`max-w-[85%] space-y-2 ${isAssistant ? "" : "order-first"}`}>
         {message.parts.map((part, i) => {
           if (part.type === "text" && part.text) {
+            if (isAssistant) {
+              return <AssistantTextPart key={i} text={part.text} />;
+            }
             return (
               <div
                 key={i}
-                className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${isAssistant
-                    ? "bg-muted text-foreground"
-                    : "bg-primary text-primary-foreground ml-auto"
-                  }`}
+                className="rounded-2xl px-4 py-2.5 text-sm leading-relaxed bg-primary text-primary-foreground ml-auto"
               >
-                {isAssistant ? (
-                  <MarkdownContent content={part.text} />
-                ) : (
-                  <p className="whitespace-pre-wrap">{part.text}</p>
-                )}
+                <p className="whitespace-pre-wrap">{part.text}</p>
               </div>
             );
           }
@@ -70,6 +67,68 @@ export function ChatMessage({ message }: ChatMessageProps) {
         </div>
       )}
     </motion.div>
+  );
+}
+
+const FORM_REGEX = /:::form\s*([\s\S]*?)\s*:::/g;
+
+function AssistantTextPart({ text }: { text: string }) {
+  const { sendMessage, isLoading } = useChatContext();
+
+  // Split text into segments: plain markdown and form blocks
+  const segments: Array<{ type: "text" | "form"; content: string }> = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  const regex = new RegExp(FORM_REGEX.source, "g");
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      segments.push({ type: "text", content: text.slice(lastIndex, match.index) });
+    }
+    segments.push({ type: "form", content: match[1] });
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < text.length) {
+    segments.push({ type: "text", content: text.slice(lastIndex) });
+  }
+
+  // If no forms found, render as plain markdown
+  if (segments.length === 1 && segments[0].type === "text") {
+    return (
+      <div className="rounded-2xl px-4 py-2.5 text-sm leading-relaxed bg-muted text-foreground">
+        <MarkdownContent content={text} />
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {segments.map((seg, i) => {
+        if (seg.type === "text" && seg.content.trim()) {
+          return (
+            <div key={i} className="rounded-2xl px-4 py-2.5 text-sm leading-relaxed bg-muted text-foreground">
+              <MarkdownContent content={seg.content} />
+            </div>
+          );
+        }
+        if (seg.type === "form") {
+          try {
+            const schema = JSON.parse(seg.content) as DynamicFormSchema;
+            return (
+              <DynamicForm
+                key={i}
+                schema={schema}
+                onSubmit={(msg) => sendMessage(msg)}
+                disabled={isLoading}
+              />
+            );
+          } catch {
+            return null;
+          }
+        }
+        return null;
+      })}
+    </>
   );
 }
 

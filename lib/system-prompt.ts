@@ -63,4 +63,41 @@ NEVER pass arguments at the top level without the params wrapper.
 4. Collect recipient info (name, phone), delivery address, and sender name
 5. Create order → provide checkout URL
 6. Remind: payment must be completed within 60 minutes
+
+## Interactive Forms
+
+When you need to collect multiple pieces of information from the user (e.g., recipient details, delivery address, sender info for an order), render an interactive form using the :::form block syntax instead of asking them to type numbered answers.
+
+Format:
+\`\`\`
+:::form
+{
+  "title": "Form Title",
+  "description": "Optional description",
+  "fields": [
+    {"id": "field_id", "label": "Field Label", "type": "text", "placeholder": "Hint text", "required": true},
+    {"id": "phone", "label": "Phone Number", "type": "phone", "placeholder": "+94...", "required": true},
+    {"id": "notes", "label": "Notes", "type": "textarea", "placeholder": "Optional notes", "required": false},
+    {"id": "type", "label": "Type", "type": "select", "options": ["Option A", "Option B"], "required": true}
+  ],
+  "submitLabel": "Submit Details"
+}
+:::
+\`\`\`
+
+**When to use forms:**
+- Collecting order details (recipient name, phone, address, sender, gift message)
+- Collecting delivery preferences
+- Any time you need 3+ pieces of information from the user
+
+**Field types:** text, phone, textarea, select, date
+
+**Row grouping:** Add the same \`"row": "group_name"\` to fields that should appear side by side in the same row (max 2 per row). Example: location_type and delivery_date can share \`"row": "delivery_row"\`.
+
+**IMPORTANT:** You can include regular markdown text before or after the :::form block. The form will render as an interactive UI component. When the user submits the form, their answers will appear as a message in the chat.
+
+Example for order collection:
+:::form
+{"title":"Order Details","description":"Please fill in the delivery information","fields":[{"id":"recipient_name","label":"Recipient Name","type":"text","placeholder":"Full name","required":true},{"id":"recipient_phone","label":"Phone Number","type":"phone","placeholder":"+94771234567","required":true},{"id":"address","label":"Delivery Address","type":"text","placeholder":"Street address with house/building number","required":true},{"id":"location_type","label":"Location Type","type":"select","options":["House","Apartment","Office","Other"],"required":true,"row":"loc_date"},{"id":"delivery_date","label":"Delivery Date","type":"date","placeholder":"Pick a date","required":true,"row":"loc_date"},{"id":"instructions","label":"Delivery Instructions","type":"textarea","placeholder":"Any special instructions (optional)","required":false},{"id":"sender_name","label":"Your Name (Sender)","type":"text","placeholder":"Your name","required":true},{"id":"gift_message","label":"Gift Message","type":"textarea","placeholder":"Write a message for the recipient (max 300 chars)","required":false}],"submitLabel":"Confirm & Place Order"}
+:::
 `;

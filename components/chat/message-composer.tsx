@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useState } from "react";
 import { motion } from "framer-motion";
 import { Send, Zap, Mic } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ export function MessageComposer({
   isLoading,
 }: MessageComposerProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [focused, setFocused] = useState(false);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -44,21 +45,34 @@ export function MessageComposer({
   );
 
   return (
-    <div className="relative">
-      <div className="absolute bottom-2 left-0 lg:-left-2.5 right-0 mx-auto max-w-3xl px-2 lg:px-0">
-        <div className="relative rounded-xl bg-card border border-border/50 backdrop-blur-md shadow-lg shadow-black/5 dark:shadow-black/20 focus-within:ring-2 focus-within:ring-ring/20 transition-shadow">
+    <div className="w-full bottom-0 left-0 right-0 mx-auto max-w-3xl px-2 pb-1 lg:px-0">
+      {/* Outer wrapper for animated border */}
+      <div className={`relative rounded-xl p-[1.5px] transition-shadow duration-500 ${focused ? "composer-glow" : ""}`}>
+        {/* Animated running border */}
+        <div
+          className={`absolute inset-0 rounded-xl transition-opacity duration-300 ${focused ? "opacity-100" : "opacity-0"}`}
+          style={{
+            background: "conic-gradient(from var(--composer-angle, 0deg), transparent 0%, oklch(0.558 0.288 302.321) 10%, transparent 20%, oklch(0.627 0.265 303.9) 30%, transparent 40%)",
+            animation: focused ? "composer-spin 3s linear infinite" : "none",
+          }}
+        />
+
+        {/* Inner content */}
+        <div className="relative rounded-xl bg-card backdrop-blur-md shadow-lg shadow-black/5 dark:shadow-black/20">
           <Textarea
             ref={textareaRef}
             value={value}
             onChange={handleInput}
             onKeyDown={handleKeyDown}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
             placeholder="Ask about products, delivery, or place an order..."
-            className="min-h-[52px] max-h-[200px] resize-none border-0 bg-transparent px-4 pt-3 pb-12 focus-visible:ring-0 focus-visible:ring-offset-0"
+            className="min-h-13 max-h-50 resize-none border-0 bg-transparent px-4 pt-3 pb-12 focus-visible:ring-0 focus-visible:ring-offset-0"
             rows={1}
           />
 
           {/* Bottom actions row */}
-          <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
+          <div className={`absolute bottom-2 left-2 right-2 flex items-center justify-between ${focused ? "bg-card/40 backdrop-blur-sm rounded-md" : ""}`}>
             {/* Left actions */}
             <div className="flex items-center gap-1">
               <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" disabled>

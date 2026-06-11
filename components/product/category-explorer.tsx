@@ -19,15 +19,18 @@ export function CategoryExplorer({ data }: { data: unknown }) {
   if (categories.length === 0) return null;
 
   return (
-    <div className="rounded-lg border p-4 space-y-2 max-w-md">
-      <div className="flex items-center gap-2 text-sm font-medium">
+    <div className="rounded-xl border p-2 space-y-2 max-w-lg">
+      <div className="flex items-center px-2 py-1 gap-2 text-sm font-medium">
         <FolderOpen className="h-4 w-4 text-primary" />
-        <span>Product Categories</span>
-        <Badge variant="secondary" className="text-[10px]">
+        <span className="text-base font-medium">Product Categories</span>
+        <Badge
+          variant="secondary"
+          className="text-xs font-semibold bg-primary/30 text-primary"
+        >
           {categories.length}
         </Badge>
       </div>
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap items-center gap-1.5 bg-card p-2 rounded-lg">
         {categories.slice(0, 30).map((cat, i) => (
           <motion.div
             key={cat.name}
@@ -37,7 +40,7 @@ export function CategoryExplorer({ data }: { data: unknown }) {
           >
             {cat.url ? (
               <a href={cat.url} target="_blank" rel="noopener noreferrer">
-                <Badge variant="outline" className="text-xs cursor-pointer hover:bg-accent transition-colors">
+                <Badge variant="outline" className="text-xs capitalize cursor-pointer hover:bg-accent transition-colors">
                   {cat.name}
                 </Badge>
               </a>
