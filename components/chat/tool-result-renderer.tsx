@@ -19,7 +19,7 @@ interface ToolPart {
   output?: unknown;
 }
 
-export function ToolResultRenderer({ part }: { part: ToolPart }) {
+export function ToolResultRenderer({ part, messageId }: { part: ToolPart; messageId?: string }) {
   const toolName = part.type.replace(/^tool-/, "");
 
   if (part.state !== "output-available") {
@@ -36,12 +36,12 @@ export function ToolResultRenderer({ part }: { part: ToolPart }) {
       transition={{ duration: 0.3 }}
       className="my-4"
     >
-      {renderToolCard(toolName, data)}
+      {renderToolCard(toolName, data, messageId)}
     </motion.div>
   );
 }
 
-function renderToolCard(toolName: string, data: unknown) {
+function renderToolCard(toolName: string, data: unknown, messageId?: string) {
   switch (toolName) {
     case "kapruka_search_products":
       return <ProductCarousel data={data} />;
@@ -54,7 +54,7 @@ function renderToolCard(toolName: string, data: unknown) {
     case "kapruka_check_delivery":
       return <DeliveryCard data={data} />;
     case "kapruka_create_order":
-      return <CheckoutCard data={data} />;
+      return <CheckoutCard data={data} messageId={messageId} />;
     case "kapruka_track_order":
       return <TrackingTimeline data={data} />;
     default:

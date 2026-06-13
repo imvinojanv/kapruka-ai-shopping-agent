@@ -7,70 +7,104 @@ import { ChatMessage } from "./chat-message";
 import { MessageComposer } from "./message-composer";
 import { TypingIndicator } from "./typing-indicator";
 import { ChatProvider } from "./chat-context";
-import { useChatHistoryStore, useShoppingStore } from "@/lib/store";
+import { useShoppingStore } from "@/lib/store";
 
 interface ChatContainerProps {
   chatId: string;
 }
 
-function loadMessages(chatId: string): UIMessage[] {
-  if (typeof window === "undefined") return [];
-  const stored = localStorage.getItem(`chat-messages-${chatId}`);
-  if (!stored) return [];
-  try {
-    return JSON.parse(stored);
-  } catch {
-    return [];
-  }
-}
-
-function saveMessages(chatId: string, messages: UIMessage[]) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(`chat-messages-${chatId}`, JSON.stringify(messages));
-}
-
 export function ChatContainer({ chatId }: ChatContainerProps) {
-  const { updateThreadTitle, touchThread, threads } = useChatHistoryStore();
   const cart = useShoppingStore((s) => s.cart);
+  const clearCart = useShoppingStore((s) => s.clearCart);
   const [input, setInput] = useState("");
   const titleUpdated = useRef(false);
+  const [loaded, setLoaded] = useState(false);
 
   const { messages, sendMessage, status, setMessages } = useChat({
     id: chatId,
-    messages: loadMessages(chatId),
     onFinish({ message }) {
-      touchThread(chatId);
-      // Auto-title: update from first user message
-      const thread = threads.find((t) => t.id === chatId);
-      if (!titleUpdated.current && thread?.title === "New conversation") {
-        // Use the first user message as the title
+      // Auto-title from first user message
+      if (!titleUpdated.current) {
         const userMsg = messages.find((m) => m.role === "user");
         if (userMsg) {
           const textPart = userMsg.parts.find((p: { type: string }) => p.type === "text");
           if (textPart && "text" in textPart) {
             const title = (textPart.text as string).slice(0, 60).trim();
-            updateThreadTitle(chatId, title);
+            fetch(`/api/threads/${chatId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ title }),
+            }).then(() => {
+              // Dispatch event so sidebar can refresh
+              window.dispatchEvent(new CustomEvent("thread-updated"));
+            });
             titleUpdated.current = true;
           }
         }
       }
+
+      // Clear cart after order creation
+      const hasOrderTool = message.parts.some(
+        (p: { type: string }) => p.type === "tool-kapruka_create_order"
+      );
+      if (hasOrderTool) {
+        clearCart();
+      }
     },
   });
+
+  // Load messages from DB on mount
+  useEffect(() => {
+    async function fetchMessages() {
+      try {
+        const res = await fetch(`/api/threads/${chatId}/messages`);
+        if (res.ok) {
+          const dbMessages = await res.json();
+          if (dbMessages.length > 0) {
+            const uiMessages: UIMessage[] = dbMessages.map(
+              (m: { id: string; role: string; content: unknown }) => ({
+                id: m.id,
+                role: m.role,
+                parts: m.content as UIMessage["parts"],
+              })
+            );
+            setMessages(uiMessages);
+          }
+        }
+      } catch {
+        // Thread might not exist yet
+      }
+      setLoaded(true);
+    }
+    fetchMessages();
+  }, [chatId, setMessages]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const hasSentInitial = useRef(false);
   const isLoading = status === "streaming" || status === "submitted";
 
-  // Persist messages whenever they change
+  // Persist messages to DB (debounced)
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    if (messages.length > 0) {
-      saveMessages(chatId, messages);
-    }
-  }, [chatId, messages]);
+    if (messages.length === 0 || !loaded) return;
+
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      fetch(`/api/threads/${chatId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages }),
+      });
+    }, 2000);
+
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, [chatId, messages, loaded]);
 
   // Pick up the initial message stored by the welcome page
   useEffect(() => {
-    if (hasSentInitial.current) return;
+    if (hasSentInitial.current || !loaded) return;
     const key = `chat-init-${chatId}`;
     const initialText = sessionStorage.getItem(key);
     if (initialText) {
@@ -78,7 +112,7 @@ export function ChatContainer({ chatId }: ChatContainerProps) {
       hasSentInitial.current = true;
       sendMessage({ text: initialText }, { body: { cart } });
     }
-  }, [chatId, sendMessage]);
+  }, [chatId, sendMessage, loaded, cart]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -97,6 +131,14 @@ export function ChatContainer({ chatId }: ChatContainerProps) {
     sendMessage({ text }, { body: { cart } });
   }, [sendMessage, cart]);
 
+  if (!loaded) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
   return (
     <ChatProvider sendMessage={handleFormSubmit} isLoading={isLoading}>
       <div className="flex flex-1 flex-col overflow-hidden">
@@ -109,12 +151,12 @@ export function ChatContainer({ chatId }: ChatContainerProps) {
           </div>
         </div>
 
-      <MessageComposer
-        value={input}
-        onChange={setInput}
-        onSubmit={handleSend}
-        isLoading={isLoading}
-      />
+        <MessageComposer
+          value={input}
+          onChange={setInput}
+          onSubmit={handleSend}
+          isLoading={isLoading}
+        />
       </div>
     </ChatProvider>
   );

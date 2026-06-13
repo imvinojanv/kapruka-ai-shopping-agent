@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useShoppingStore, usePendingOrderStore, type PendingOrder } from "@/lib/store";
 
 export interface FormField {
   id: string;
@@ -37,6 +38,8 @@ interface DynamicFormProps {
 export function DynamicForm({ schema, onSubmit, disabled }: DynamicFormProps) {
   const [values, setValues] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
+  const cart = useShoppingStore((s) => s.cart);
+  const setPendingOrder = usePendingOrderStore((s) => s.setPendingOrder);
 
   const setValue = (id: string, value: string) => {
     setValues((prev) => ({ ...prev, [id]: value }));
@@ -55,6 +58,36 @@ export function DynamicForm({ schema, onSubmit, disabled }: DynamicFormProps) {
       .filter(Boolean);
 
     const message = lines.join("\n");
+
+    const pending: PendingOrder = {
+      id: crypto.randomUUID(),
+      items: cart.map((item) => ({
+        productId: item.productId,
+        name: item.name,
+        price: item.price,
+        currency: item.currency,
+        quantity: item.quantity,
+        imageUrl: item.imageUrl,
+        total: item.price * item.quantity,
+      })),
+      recipient: {
+        name: getFieldValue(values, schema.fields, ["recipient_name", "recipient name", "name"]),
+        phone: getFieldValue(values, schema.fields, ["recipient_phone", "phone", "phone_number", "recipient phone number"]),
+      },
+      delivery: {
+        city: getFieldValue(values, schema.fields, ["city", "delivery_city"]),
+        address: getFieldValue(values, schema.fields, ["address", "delivery_address", "delivery address"]),
+        locationType: getFieldValue(values, schema.fields, ["location_type", "locationType", "location type"]) || "house",
+        date: getFieldValue(values, schema.fields, ["date", "delivery_date", "delivery date"]),
+        instructions: getFieldValue(values, schema.fields, ["instructions", "delivery_instructions", "delivery instructions"]) || undefined,
+      },
+      sender: {
+        name: getFieldValue(values, schema.fields, ["sender_name", "sender", "your name", "your_name", "your name (sender)"]),
+      },
+      giftMessage: getFieldValue(values, schema.fields, ["gift_message", "gift message", "message"]) || undefined,
+    };
+
+    setPendingOrder(pending);
     setSubmitted(true);
     onSubmit(message);
   };
@@ -230,7 +263,6 @@ function groupFieldsByRow(fields: FormField[]): FormField[][] {
   while (i < fields.length) {
     const field = fields[i];
     if (field.row) {
-      // Find all consecutive fields with the same row ID
       const rowGroup: FormField[] = [field];
       while (i + 1 < fields.length && fields[i + 1].row === field.row) {
         i++;
@@ -244,4 +276,17 @@ function groupFieldsByRow(fields: FormField[]): FormField[][] {
   }
 
   return rows;
+}
+
+function getFieldValue(values: Record<string, string>, fields: FormField[], candidates: string[]): string {
+  for (const candidate of candidates) {
+    const lower = candidate.toLowerCase();
+    const field = fields.find(
+      (f) => f.id.toLowerCase() === lower || f.label.toLowerCase() === lower
+    );
+    if (field && values[field.id]?.trim()) {
+      return values[field.id].trim();
+    }
+  }
+  return "";
 }

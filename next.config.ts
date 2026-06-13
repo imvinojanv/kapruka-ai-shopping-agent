@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
       { hostname: "kapruka.com" },
       { hostname: "cdn.kapruka.com" },
       { hostname: "**.kapruka.com" },
+      { hostname: "lh3.googleusercontent.com" },
     ],
   },
 };

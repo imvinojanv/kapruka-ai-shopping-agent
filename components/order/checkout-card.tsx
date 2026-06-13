@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CreditCard, Clock, ExternalLink, Package, Truck, Download, FileText } from "lucide-react";
+import { CreditCard, Clock, ExternalLink, Package, Truck, Download, FileText, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useShoppingStore } from "@/lib/store";
+import { useShoppingStore, usePendingOrderStore } from "@/lib/store";
 import { generateOrderReceipt, type ReceiptData } from "@/lib/pdf/generate-receipt";
 
 interface OrderSummary {
@@ -20,48 +20,74 @@ interface OrderSummary {
   expires_at?: string;
 }
 
-export function CheckoutCard({ data }: { data: unknown }) {
+export function CheckoutCard({ data, messageId }: { data: unknown; messageId?: string }) {
   if (typeof data === "string" || !data) return null;
   const order = data as OrderSummary;
   const clearCart = useShoppingStore((s) => s.clearCart);
-  const cart = useShoppingStore((s) => s.cart);
-  const delivery = useShoppingStore((s) => s.delivery);
-  const recipient = useShoppingStore((s) => s.recipient);
-  const sender = useShoppingStore((s) => s.sender);
-  const giftMessage = useShoppingStore((s) => s.giftMessage);
+  const pendingOrder = usePendingOrderStore((s) => s.pendingOrder);
+  const clearPendingOrder = usePendingOrderStore((s) => s.clearPendingOrder);
   const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [generating, setGenerating] = useState(false);
 
-  const handlePaymentClick = () => {
-    // Generate receipt PDF
-    if (order.summary && order.order_ref && order.checkout_url && order.expires_at) {
-      try {
-        const receiptData: ReceiptData = {
+  const handlePaymentClick = async () => {
+    if (!order.summary || !order.order_ref || !order.checkout_url || !order.expires_at) return;
+
+    setSaving(true);
+    try {
+      await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           orderRef: order.order_ref,
           checkoutUrl: order.checkout_url,
           expiresAt: order.expires_at,
-          items: cart.length > 0 ? cart : [],
+          chatMessageId: messageId || null,
+          items: pendingOrder?.items ?? [],
           summary: order.summary,
-          recipient: recipient ?? { name: "Customer", phone: "N/A" },
-          delivery: delivery
-            ? {
-              address: delivery.address,
-              city: delivery.city,
-              date: delivery.date,
-              locationType: delivery.locationType,
-              instructions: delivery.instructions,
-            }
-            : { address: "N/A", city: "N/A", date: "N/A", locationType: "house" },
-          sender: sender ?? { name: "N/A" },
-          giftMessage: giftMessage || undefined,
-        };
-        const dataUri = generateOrderReceipt(receiptData);
-        setReceiptUrl(dataUri);
-      } catch (e) {
-        console.error("Failed to generate receipt:", e);
-      }
+          recipient: pendingOrder?.recipient ?? { name: "Customer", phone: "N/A" },
+          delivery: pendingOrder?.delivery ?? { address: "N/A", city: "N/A", date: "N/A", locationType: "house" },
+          sender: pendingOrder?.sender ?? { name: "N/A" },
+          giftMessage: pendingOrder?.giftMessage || null,
+        }),
+      });
+    } catch (e) {
+      console.error("Failed to save order:", e);
+    } finally {
+      setSaving(false);
     }
 
+    clearPendingOrder();
     clearCart();
+  };
+
+  const handleGenerateReceipt = async () => {
+    if (!order.order_ref) return;
+
+    setGenerating(true);
+    try {
+      const res = await fetch(`/api/orders/${order.order_ref}`);
+      if (!res.ok) throw new Error("Order not found");
+
+      const dbOrder = await res.json();
+      const receiptData: ReceiptData = {
+        orderRef: dbOrder.orderRef,
+        checkoutUrl: dbOrder.checkoutUrl,
+        expiresAt: dbOrder.expiresAt,
+        items: dbOrder.items ?? [],
+        summary: dbOrder.summary,
+        recipient: dbOrder.recipient ?? { name: "Customer", phone: "N/A" },
+        delivery: dbOrder.delivery ?? { address: "N/A", city: "N/A", date: "N/A", locationType: "house" },
+        sender: dbOrder.sender ?? { name: "N/A" },
+        giftMessage: dbOrder.giftMessage || undefined,
+      };
+      const dataUri = generateOrderReceipt(receiptData);
+      setReceiptUrl(dataUri);
+    } catch (e) {
+      console.error("Failed to generate receipt:", e);
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const handleDownload = () => {
@@ -161,11 +187,12 @@ export function CheckoutCard({ data }: { data: unknown }) {
             <Button
               asChild
               className="w-full h-10 gap-2 rounded-xl font-medium"
+              disabled={saving}
               onClick={handlePaymentClick}
             >
               <a href={order.checkout_url} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="h-4 w-4" />
-                Complete Payment
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
+                {saving ? "Saving Order..." : "Complete Payment"}
               </a>
             </Button>
           )}
@@ -188,10 +215,11 @@ export function CheckoutCard({ data }: { data: unknown }) {
             <Button
               variant="ghost"
               className="w-full h-9 gap-2 rounded-xl text-sm text-muted-foreground"
-              onClick={handlePaymentClick}
+              disabled={generating}
+              onClick={handleGenerateReceipt}
             >
-              <FileText className="h-4 w-4" />
-              Generate Receipt PDF
+              {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+              {generating ? "Generating..." : "Generate Receipt PDF"}
             </Button>
           )
         )}

@@ -77,9 +77,9 @@ export function Header({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="p-1">
-                      <SelectItem value="en" className="px-3 py-1.5 font-sans">English</SelectItem>
-                      <SelectItem value="si" className="px-3 py-1.5 font-sinhala">සිංහල</SelectItem>
-                      <SelectItem value="ta" className="px-3 py-1.5 font-tamil">தமிழ்</SelectItem>
+                      <SelectItem value="en" className="px-3 py-1.5 font-sans">English (en)</SelectItem>
+                      <SelectItem value="si" className="px-3 py-1.5 font-sinhala">සිංහල (si)</SelectItem>
+                      <SelectItem value="ta" className="px-3 py-1.5 font-tamil">தமிழ் (ta)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

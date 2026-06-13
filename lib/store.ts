@@ -53,14 +53,6 @@ export interface OrderResult {
   expiresAt: string;
 }
 
-// --- Chat types ---
-
-export interface ChatThread {
-  id: string;
-  title: string;
-  createdAt: number;
-  updatedAt: number;
-}
 
 // --- Settings ---
 
@@ -176,58 +168,51 @@ export const useShoppingStore = create<ShoppingState>()(
   )
 );
 
-// --- Chat History Store ---
 
-interface ChatHistoryState {
-  threads: ChatThread[];
-  activeThreadId: string | null;
-  setActiveThread: (id: string | null) => void;
-  createThread: (id: string) => void;
-  deleteThread: (id: string) => void;
-  updateThreadTitle: (id: string, title: string) => void;
-  touchThread: (id: string) => void;
+// --- Pending Order Store ---
+
+export interface PendingOrderItem {
+  productId: string;
+  name: string;
+  price: number;
+  currency: string;
+  quantity: number;
+  imageUrl?: string;
+  total: number;
 }
 
-export const useChatHistoryStore = create<ChatHistoryState>()(
+export interface PendingOrder {
+  id: string;
+  items: PendingOrderItem[];
+  recipient: { name: string; phone: string };
+  delivery: {
+    city: string;
+    address: string;
+    locationType: string;
+    date: string;
+    instructions?: string;
+  };
+  sender: { name: string };
+  giftMessage?: string;
+  chatMessageId?: string;
+}
+
+interface PendingOrderState {
+  pendingOrder: PendingOrder | null;
+  setPendingOrder: (order: PendingOrder) => void;
+  clearPendingOrder: () => void;
+}
+
+export const usePendingOrderStore = create<PendingOrderState>()(
   persist(
     (set) => ({
-      threads: [],
-      activeThreadId: null,
-
-      setActiveThread: (id) => set({ activeThreadId: id }),
-
-      createThread: (id) =>
-        set((state) => ({
-          threads: [
-            { id, title: "New conversation", createdAt: Date.now(), updatedAt: Date.now() },
-            ...state.threads,
-          ],
-          activeThreadId: id,
-        })),
-
-      deleteThread: (id) => {
-        if (typeof window !== "undefined") {
-          localStorage.removeItem(`chat-messages-${id}`);
-        }
-        set((state) => ({
-          threads: state.threads.filter((t) => t.id !== id),
-          activeThreadId: state.activeThreadId === id ? null : state.activeThreadId,
-        }));
-      },
-
-      updateThreadTitle: (id, title) =>
-        set((state) => ({
-          threads: state.threads.map((t) => (t.id === id ? { ...t, title } : t)),
-        })),
-
-      touchThread: (id) =>
-        set((state) => ({
-          threads: state.threads.map((t) =>
-            t.id === id ? { ...t, updatedAt: Date.now() } : t
-          ),
-        })),
+      pendingOrder: null,
+      setPendingOrder: (order) => set({ pendingOrder: order }),
+      clearPendingOrder: () => set({ pendingOrder: null }),
     }),
-    { name: "kapruka-chat-history" }
+    {
+      name: "kapruka-pending-order",
+    }
   )
 );
 

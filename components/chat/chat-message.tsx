@@ -1,9 +1,11 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Bot, User } from "lucide-react";
+import Image from "next/image";
+import { Bot } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import type { UIMessage } from "ai";
+import { useSession } from "next-auth/react";
 import { ToolResultRenderer } from "./tool-result-renderer";
 import { DynamicForm, type DynamicFormSchema } from "./dynamic-form";
 import { useChatContext } from "./chat-context";
@@ -14,6 +16,7 @@ interface ChatMessageProps {
 
 export function ChatMessage({ message }: ChatMessageProps) {
   const isAssistant = message.role === "assistant";
+  const { data: session } = useSession();
 
   return (
     <motion.div
@@ -26,13 +29,6 @@ export function ChatMessage({ message }: ChatMessageProps) {
         <div className="shrink-0 mt-0.5">
           <div className="flex size-9 items-center justify-center rounded-full bg-primary/20">
             <Bot className="size-5 text-primary" />
-            {/* <Image
-              src="/kapruka-favicon.png"
-              alt="Kapruka"
-              width={20}
-              height={20}
-              className="size-7 rounded-full"
-            /> */}
           </div>
         </div>
       )}
@@ -53,7 +49,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
             );
           }
           if (part.type.startsWith("tool-")) {
-            return <ToolResultRenderer key={i} part={part as any} />;
+            return <ToolResultRenderer key={i} part={part as any} messageId={message.id} />;
           }
           return null;
         })}
@@ -61,9 +57,19 @@ export function ChatMessage({ message }: ChatMessageProps) {
 
       {!isAssistant && (
         <div className="shrink-0 mt-0.5">
-          <div className="flex size-8 items-center justify-center rounded-full bg-secondary">
-            <User className="size-5 text-secondary-foreground" />
-          </div>
+          {session?.user?.image ? (
+            <Image
+              src={session.user.image}
+              alt={session.user.name ?? ""}
+              width={32}
+              height={32}
+              className="size-8 rounded-full"
+            />
+          ) : (
+            <div className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-medium">
+              {session?.user?.name?.charAt(0) ?? "U"}
+            </div>
+          )}
         </div>
       )}
     </motion.div>

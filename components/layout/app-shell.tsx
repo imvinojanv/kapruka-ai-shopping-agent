@@ -1,18 +1,23 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sidebar } from "./sidebar";
 import { Header } from "./header";
 import { CartModal } from "@/components/order/cart-modal";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { useSettingsStore, useChatHistoryStore } from "@/lib/store";
+import { useSettingsStore } from "@/lib/store";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
+
+  // Don't wrap login page with shell
+  if (pathname === "/login") {
+    return <>{children}</>;
+  }
   const { sidebarOpen, setSidebarOpen, settings } = useSettingsStore();
-  const { setActiveThread } = useChatHistoryStore();
   const [cartOpen, setCartOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -29,10 +34,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [settings.theme]);
 
   const handleNewChat = useCallback(() => {
-    setActiveThread(null);
     router.push("/");
     if (isMobile) setMobileSidebarOpen(false);
-  }, [setActiveThread, router, isMobile]);
+  }, [router, isMobile]);
 
   const handleToggleSidebar = useCallback(() => {
     if (isMobile) {

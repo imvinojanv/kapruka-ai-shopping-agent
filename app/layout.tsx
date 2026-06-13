@@ -1,20 +1,20 @@
 import type { Metadata } from "next";
 import { 
-  Geist, 
-  Geist_Mono, 
-  Inter, 
-  Space_Grotesk,
+  Geist_Mono,
+  Inter,
+  Sora,
   Noto_Serif_Tamil,
   Noto_Serif_Sinhala,
 } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { AppShell } from "@/components/layout/app-shell";
+import { SessionProvider } from "next-auth/react";
 
 // Fonts - English
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
-const spaceGroteskHeading = Space_Grotesk({ subsets: ["latin"], variable: "--font-heading" });
+const sora = Sora({ subsets: ["latin"], variable: "--font-heading" });
 
 // Fonts - Tamil & Sinhala
 const notoSerifTamil = Noto_Serif_Tamil({ subsets: ["tamil"], variable: "--font-tamil" });
@@ -37,7 +37,7 @@ export default function RootLayout({
         "h-full antialiased",
         inter.variable,
         geistMono.variable,
-        spaceGroteskHeading.variable,
+        sora.variable,
         notoSerifTamil.variable,
         notoSerifSinhala.variable,
         "font-sans"
@@ -45,7 +45,9 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="h-full md:h-screen overflow-hidden">
-        <AppShell>{children}</AppShell>
+        <SessionProvider>
+          <AppShell>{children}</AppShell>
+        </SessionProvider>
       </body>
     </html>
   );
